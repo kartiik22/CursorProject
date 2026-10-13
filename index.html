@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TipSplit — tip & bill calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a2420;
+      --muted: #5a6b62;
+      --paper: #f3f7f4;
+      --panel: rgba(255, 255, 255, 0.72);
+      --lime: #c8f542;
+      --lime-deep: #9bc41a;
+      --forest: #1e3d32;
+      --line: rgba(30, 61, 50, 0.12);
+      --shadow: 0 24px 60px rgba(26, 36, 32, 0.18);
+      --radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 700px at 10% -10%, #d8f5c8 0%, transparent 55%),
+        radial-gradient(900px 600px at 100% 0%, #b8e0d0 0%, transparent 50%),
+        linear-gradient(165deg, #eef5f0 0%, #dce8e1 45%, #c5d9cf 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(30, 61, 50, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 61, 50, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: clamp(2rem, 6vw, 4.5rem) 1.25rem 3rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2rem;
+      animation: rise 0.7s ease-out both;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse-lime {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(200, 245, 66, 0.45); }
+      50% { box-shadow: 0 0 0 10px rgba(200, 245, 66, 0); }
+    }
+
+    @keyframes tick {
+      from { transform: scale(0.96); opacity: 0.7; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .brand {
+      font-family: "Fraunces", serif;
+      font-size: clamp(2.8rem, 9vw, 4.4rem);
+      font-weight: 700;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      color: var(--forest);
+      margin: 0;
+    }
+
+    .brand span {
+      display: inline-block;
+      background: var(--lime);
+      padding: 0.05em 0.18em;
+      border-radius: 0.18em;
+      animation: pulse-lime 2.4s ease-in-out infinite;
+    }
+
+    .lede {
+      margin: 0.75rem 0 0;
+      max-width: 28ch;
+      font-size: 1.1rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    form.app {
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(1.25rem, 4vw, 1.75rem);
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap .prefix {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      appearance: textfield;
+      -moz-appearance: textfield;
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 0.95rem 1rem 0.95rem 2rem;
+      font: inherit;
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: var(--ink);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--lime-deep);
+      box-shadow: 0 0 0 4px rgba(200, 245, 66, 0.35);
+    }
+
+    .tips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+
+    .tips input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tips label {
+      display: grid;
+      place-items: center;
+      min-height: 3rem;
+      border-radius: 12px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+
+    .tips label:hover {
+      transform: translateY(-1px);
+      border-color: var(--lime-deep);
+    }
+
+    .tips input:checked + label {
+      background: var(--forest);
+      border-color: var(--forest);
+      color: var(--lime);
+    }
+
+    .tips input:focus-visible + label {
+      box-shadow: 0 0 0 4px rgba(200, 245, 66, 0.35);
+    }
+
+    .custom-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.65rem;
+      align-items: end;
+    }
+
+    .custom-row .input-wrap .prefix {
+      right: 1rem;
+      left: auto;
+    }
+
+    .custom-row input[type="number"] {
+      padding-left: 1rem;
+      padding-right: 2rem;
+    }
+
+    .split {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: rgba(30, 61, 50, 0.05);
+      border-radius: 14px;
+      padding: 0.75rem 1rem;
+    }
+
+    .split strong {
+      font-size: 1.05rem;
+    }
+
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .stepper button {
+      width: 2.4rem;
+      height: 2.4rem;
+      border: none;
+      border-radius: 50%;
+      background: var(--forest);
+      color: var(--lime);
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .stepper button:hover {
+      transform: scale(1.06);
+      background: #163029;
+    }
+
+    .stepper button:active {
+      transform: scale(0.96);
+    }
+
+    .stepper output {
+      min-width: 2ch;
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .results {
+      display: grid;
+      gap: 0.75rem;
+      padding-top: 0.25rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+    }
+
+    .row span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .row output {
+      font-family: "Fraunces", serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--forest);
+    }
+
+    .row.total output {
+      font-size: clamp(1.8rem, 5vw, 2.3rem);
+      color: var(--ink);
+    }
+
+    .row.per-person {
+      background: var(--lime);
+      margin: 0.25rem -0.35rem -0.35rem;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+    }
+
+    .row.per-person span {
+      color: var(--forest);
+      font-weight: 600;
+    }
+
+    .row.per-person output {
+      animation: tick 0.25s ease-out;
+    }
+
+    .hint {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 480px) {
+      .tips {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1 class="brand">Tip<span>Split</span></h1>
+      <p class="lede">Enter the bill, pick a tip, split the check. Totals update as you type.</p>
+    </header>
+
+    <form class="app" id="tip-form" autocomplete="off">
+      <div class="field">
+        <label for="bill">Bill amount</label>
+        <div class="input-wrap">
+          <span class="prefix">$</span>
+          <input id="bill" name="bill" type="number" min="0" step="0.01" placeholder="0.00" value="48.50" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Tip percent</label>
+        <div class="tips" role="radiogroup" aria-label="Tip percent">
+          <input type="radio" name="tip" id="tip-10" value="10" />
+          <label for="tip-10">10%</label>
+          <input type="radio" name="tip" id="tip-15" value="15" checked />
+          <label for="tip-15">15%</label>
+          <input type="radio" name="tip" id="tip-18" value="18" />
+          <label for="tip-18">18%</label>
+          <input type="radio" name="tip" id="tip-20" value="20" />
+          <label for="tip-20">20%</label>
+        </div>
+      </div>
+
+      <div class="field custom-row">
+        <div>
+          <label for="custom-tip">Custom tip</label>
+          <div class="input-wrap">
+            <span class="prefix">%</span>
+            <input id="custom-tip" name="custom-tip" type="number" min="0" max="100" step="1" placeholder="e.g. 22" />
+          </div>
+        </div>
+      </div>
+
+      <div class="split">
+        <strong>Split between</strong>
+        <div class="stepper">
+          <button type="button" id="minus" aria-label="Fewer people">−</button>
+          <output id="people" for="people-value">2</output>
+          <button type="button" id="plus" aria-label="More people">+</button>
+        </div>
+        <input type="hidden" id="people-value" name="people" value="2" />
+      </div>
+
+      <div class="results" aria-live="polite">
+        <div class="row">
+          <span>Tip</span>
+          <output id="tip-amount">$0.00</output>
+        </div>
+        <div class="row total">
+          <span>Total</span>
+          <output id="total-amount">$0.00</output>
+        </div>
+        <div class="row per-person">
+          <span>Each person pays</span>
+          <output id="per-person">$0.00</output>
+        </div>
+      </div>
+
+      <p class="hint">Open this file in any browser — no install, no build step.</p>
+    </form>
+  </main>
+
+  <script>
+    const billInput = document.getElementById("bill");
+    const customTip = document.getElementById("custom-tip");
+    const tipRadios = document.querySelectorAll('input[name="tip"]');
+    const peopleValue = document.getElementById("people-value");
+    const peopleOut = document.getElementById("people");
+    const tipAmountOut = document.getElementById("tip-amount");
+    const totalAmountOut = document.getElementById("total-amount");
+    const perPersonOut = document.getElementById("per-person");
+    const minusBtn = document.getElementById("minus");
+    const plusBtn = document.getElementById("plus");
+
+    function money(n) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(Number.isFinite(n) ? n : 0);
+    }
+
+    function selectedTipPercent() {
+      const custom = parseFloat(customTip.value);
+      if (Number.isFinite(custom) && customTip.value !== "") {
+        return Math.max(0, custom);
+      }
+      const checked = document.querySelector('input[name="tip"]:checked');
+      return checked ? parseFloat(checked.value) : 0;
+    }
+
+    function recalculate() {
+      const bill = Math.max(0, parseFloat(billInput.value) || 0);
+      const tipPercent = selectedTipPercent();
+      const people = Math.max(1, parseInt(peopleValue.value, 10) || 1);
+
+      const tip = bill * (tipPercent / 100);
+      const total = bill + tip;
+      const each = total / people;
+
+      tipAmountOut.textContent = money(tip);
+      totalAmountOut.textContent = money(total);
+      perPersonOut.textContent = money(each);
+
+      // Restart the per-person tick animation on change
+      perPersonOut.style.animation = "none";
+      void perPersonOut.offsetWidth;
+      perPersonOut.style.animation = "";
+    }
+
+    function setPeople(n) {
+      const people = Math.min(20, Math.max(1, n));
+      peopleValue.value = String(people);
+      peopleOut.textContent = String(people);
+      recalculate();
+    }
+
+    billInput.addEventListener("input", recalculate);
+    customTip.addEventListener("input", () => {
+      if (customTip.value !== "") {
+        tipRadios.forEach((r) => {
+          r.checked = false;
+        });
+      }
+      recalculate();
+    });
+    tipRadios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        customTip.value = "";
+        recalculate();
+      });
+    });
+    minusBtn.addEventListener("click", () => setPeople(parseInt(peopleValue.value, 10) - 1));
+    plusBtn.addEventListener("click", () => setPeople(parseInt(peopleValue.value, 10) + 1));
+
+    recalculate();
+  </script>
+</body>
+</html>
